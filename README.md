@@ -10,7 +10,7 @@
 Añade cualquier ciudad del mundo, busca con autocompletado, visualiza la hora en tiempo real con indicador día/noche y cambia entre modo claro y oscuro.  
 Incluye sección "About Me" con enlaces a Discord y Ko-fi.
 
-![Vista previa](preview.png)
+![Vista previa](https://i.wpfc.ml/hh/wck5sp.jpg)
 
 ---
 
@@ -50,4 +50,4 @@ Puedes probar el reloj mundial directamente aquí:
 
 1. **Clona el repositorio**  
    ```bash
-   git clone https://github.com/tu-usuario/reloj-mundial-gameboy.git
+   git clone https://github.com/Jeishoon-bit/Reloj-Mundial---Game-boy.git
