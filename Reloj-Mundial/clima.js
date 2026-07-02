@@ -1,0 +1,245 @@
+// =============================================
+// CLIMA - wttr.in con coordenadas precisas
+// =============================================
+
+const cacheClima = {};
+const TIEMPO_CACHE = 10 * 60 * 1000; // 10 minutos
+
+// Mapeo de códigos de clima de wttr.in a emojis
+const emojisClima = {
+  "113": "☀️", "116": "⛅", "119": "☁️", "122": "☁️", "143": "🌫️",
+  "176": "🌦️", "179": "🌨️", "182": "🌨️", "185": "🌨️", "200": "⛈️",
+  "227": "🌬️", "230": "🌬️", "248": "🌫️", "260": "🌫️", "263": "🌧️",
+  "266": "🌧️", "281": "🌧️", "284": "🌧️", "293": "🌧️", "296": "🌧️",
+  "299": "🌧️", "302": "🌧️", "305": "🌧️", "308": "🌧️", "311": "🌧️",
+  "314": "🌧️", "317": "🌧️", "320": "🌧️", "323": "🌨️", "326": "🌨️",
+  "329": "🌨️", "332": "🌨️", "335": "🌨️", "338": "🌨️", "350": "🌧️",
+  "353": "🌧️", "356": "🌧️", "359": "🌧️", "362": "🌧️", "365": "🌧️",
+  "368": "🌨️", "371": "🌨️", "374": "🌧️", "377": "🌧️", "386": "🌩️",
+  "389": "🌩️", "392": "🌩️", "395": "🌨️"
+};
+
+function obtenerEmojiClima(codigo) {
+  return emojisClima[codigo] || "🌈";
+}
+
+// Coordenadas reales de cada capital (lat, lon)
+const coordenadasCapitales = {
+  "Abuya": "9.0579,7.4951",
+  "Acra": "5.6037,-0.1870",
+  "Adís Abeba": "9.0320,38.7469",
+  "Argel": "36.7538,3.0588",
+  "Bamako": "12.6392,-8.0029",
+  "Bangui": "4.3947,18.5582",
+  "Banjul": "13.4549,-16.5790",
+  "Bissau": "11.8636,-15.5847",
+  "Brazzaville": "-4.2634,15.2429",
+  "Buyumbura": "-3.3822,29.3644",
+  "Cairo": "30.0444,31.2357",
+  "Conakry": "9.6412,-13.5784",
+  "Dakar": "14.7167,-17.4677",
+  "Dar es Salaam": "-6.7924,39.2083",
+  "Dodoma": "-6.1731,35.7419",
+  "El Cairo": "30.0444,31.2357",
+  "Freetown": "8.4840,-13.2299",
+  "Gaborone": "-24.6282,25.9231",
+  "Harare": "-17.8252,31.0335",
+  "Jartum": "15.5007,32.5599",
+  "Kampala": "0.3476,32.5825",
+  "Kigali": "-1.9441,30.0619",
+  "Kinshasa": "-4.4419,15.2663",
+  "Libreville": "0.4162,9.4673",
+  "Lilongüe": "-13.9626,33.7741",
+  "Lomé": "6.1725,1.2314",
+  "Luanda": "-8.8368,13.2343",
+  "Lusaka": "-15.3875,28.3228",
+  "Malabo": "3.7500,8.7833",
+  "Maputo": "-25.9692,32.5732",
+  "Maseru": "-29.3151,27.4863",
+  "Mbabane": "-26.3054,31.1367",
+  "Mogadiscio": "2.0469,45.3182",
+  "Monrovia": "6.3004,-10.7969",
+  "Moroni": "-11.7022,43.2551",
+  "Nairobi": "-1.2864,36.8172",
+  "Niamey": "13.5127,2.1126",
+  "Nuakchot": "18.0735,-15.9582",
+  "N’Djamena": "12.1348,15.0557",
+  "Ougadougou": "12.3714,-1.5197",
+  "Port Louis": "-20.1609,57.5012",
+  "Porto Novo": "6.4969,2.6289",
+  "Praia": "14.9330,-23.5133",
+  "Pretoria": "-25.7461,28.1881",
+  "Rabat": "34.0209,-6.8416",
+  "Santo Tomé": "0.3365,6.7273",
+  "Trípoli": "32.8872,13.1913",
+  "Túnez": "36.8065,10.1815",
+  "Windhoek": "-22.5609,17.0658",
+  "Yamoussoukro": "6.8276,-5.2893",
+  "Yaundé": "3.8480,11.5021",
+  "Yibuti": "11.5806,43.1425",
+  "Asunción": "-25.3005,-57.6362",
+  "Belmopán": "17.2510,-88.7590",
+  "Bogotá": "4.7110,-74.0721",
+  "Brasilia": "-15.7939,-47.8828",
+  "Bridgetown": "13.0970,-59.6167",
+  "Buenos Aires": "-34.6037,-58.3816",
+  "Caracas": "10.4806,-66.9036",
+  "Castries": "14.0096,-60.9902",
+  "Ciudad de Guatemala": "14.6349,-90.5069",
+  "Ciudad de México": "19.4326,-99.1332",
+  "Ciudad de Panamá": "9.0012,-79.5381",
+  "Georgetown": "6.8046,-58.1548",
+  "Kingston": "17.9714,-76.7936",
+  "La Habana": "23.1136,-82.3666",
+  "La Paz": "-16.5000,-68.1500",
+  "Lima": "-12.0464,-77.0428",
+  "Managua": "12.1143,-86.2362",
+  "Montevideo": "-34.9011,-56.1645",
+  "Nassau": "25.0443,-77.3504",
+  "Ottawa": "45.4215,-75.6972",
+  "Paramaribo": "5.8520,-55.2038",
+  "Puerto Príncipe": "18.5944,-72.3074",
+  "Puerto España": "10.6549,-61.5019",
+  "Quito": "-0.1807,-78.4678",
+  "Roseau": "15.3010,-61.3880",
+  "San José": "9.9325,-84.0796",
+  "San Juan": "18.4655,-66.1057",
+  "San Salvador": "13.6929,-89.2182",
+  "Santiago": "-33.4489,-70.6693",
+  "Santo Domingo": "18.4861,-69.9312",
+  "Sucre": "-19.0333,-65.2627",
+  "Tegucigalpa": "14.0818,-87.2068",
+  "Washington D.C.": "38.9072,-77.0369",
+  "Abu Dabi": "24.4539,54.3773",
+  "Amán": "31.9539,35.9106",
+  "Ankara": "39.9334,32.8597",
+  "Asjabad": "37.9509,58.3794",
+  "Astana": "51.1605,71.4704",
+  "Bagdad": "33.3152,44.3661",
+  "Bakú": "40.4093,49.8671",
+  "Bandar Seri Begawan": "4.9403,114.9481",
+  "Bangkok": "13.7563,100.5018",
+  "Biskek": "42.8746,74.5698",
+  "Colombo": "6.9271,79.8612",
+  "Daca": "23.8103,90.4125",
+  "Damascus": "33.5138,36.2765",
+  "Dili": "-8.5569,125.5603",
+  "Doha": "25.2854,51.5310",
+  "Dubái": "25.2769,55.2962",
+  "Dusambé": "38.5598,68.7870",
+  "Hanói": "21.0278,105.8342",
+  "Islamabad": "33.6844,73.0479",
+  "Jerusalén": "31.7683,35.2137",
+  "Kabul": "34.5553,69.2075",
+  "Katmandú": "27.7172,85.3240",
+  "Kuala Lumpur": "3.1390,101.6869",
+  "Kuwait": "29.3759,47.9774",
+  "Malé": "4.1755,73.5093",
+  "Manama": "26.2285,50.5860",
+  "Manila": "14.5995,120.9842",
+  "Mascate": "23.5880,58.3829",
+  "Naipyidó": "19.7450,96.1297",
+  "Nueva Delhi": "28.6139,77.2090",
+  "Pekín": "39.9042,116.4074",
+  "Phnom Penh": "11.5564,104.9282",
+  "Pionyang": "39.0392,125.7625",
+  "Riad": "24.7136,46.6753",
+  "Saná": "15.3694,44.1910",
+  "Seúl": "37.5665,126.9780",
+  "Singapur": "1.3521,103.8198",
+  "Taskent": "41.2995,69.2401",
+  "Tiflis": "41.7151,44.8271",
+  "Teherán": "35.6892,51.3890",
+  "Thimphu": "27.4712,89.6339",
+  "Tokio": "35.6762,139.6503",
+  "Ulán Bator": "47.8864,106.9057",
+  "Vientián": "17.9757,102.6331",
+  "Yakarta": "-6.2088,106.8456",
+  "Ereván": "40.1792,44.4991",
+  "Ámsterdam": "52.3676,4.9041",
+  "Andorra la Vieja": "42.5063,1.5218",
+  "Atenas": "37.9838,23.7275",
+  "Belgrado": "44.7866,20.4489",
+  "Berlín": "52.5200,13.4050",
+  "Berna": "46.9480,7.4474",
+  "Bratislava": "48.1486,17.1077",
+  "Bruselas": "50.8503,4.3517",
+  "Bucarest": "44.4268,26.1025",
+  "Budapest": "47.4979,19.0402",
+  "Chisináu": "47.0105,28.8638",
+  "Copenhague": "55.6761,12.5683",
+  "Dublín": "53.3498,-6.2603",
+  "Estocolmo": "59.3293,18.0686",
+  "Helsinki": "60.1699,24.9384",
+  "Kiev": "50.4501,30.5234",
+  "La Valeta": "35.8997,14.5147",
+  "Lisboa": "38.7223,-9.1393",
+  "Liubliana": "46.0569,14.5058",
+  "Londres": "51.5074,-0.1278",
+  "Luxemburgo": "49.6117,6.1300",
+  "Madrid": "40.4168,-3.7038",
+  "Minsk": "53.9045,27.5615",
+  "Mónaco": "43.7384,7.4246",
+  "Moscú": "55.7558,37.6173",
+  "Nicosia": "35.1856,33.3823",
+  "Oslo": "59.9139,10.7522",
+  "París": "48.8566,2.3522",
+  "Praga": "50.0755,14.4378",
+  "Reikiavik": "64.1466,-21.9426",
+  "Riga": "56.9496,24.1052",
+  "Roma": "41.9028,12.4964",
+  "San Marino": "43.9424,12.4578",
+  "Sarajevo": "43.8563,18.4131",
+  "Skopie": "41.9973,21.4280",
+  "Sofía": "42.6977,23.3219",
+  "Tallin": "59.4370,24.7536",
+  "Tirana": "41.3275,19.8187",
+  "Vaduz": "47.1410,9.5209",
+  "Varsovia": "52.2297,21.0122",
+  "Viena": "48.2082,16.3738",
+  "Vilna": "54.6872,25.2797",
+  "Zagreb": "45.8150,15.9819",
+  "Apia": "-13.8333,-171.7667",
+  "Camberra": "-35.2809,149.1300",
+  "Funafuti": "-8.5211,179.1960",
+  "Honiara": "-9.4286,159.9483",
+  "Majuro": "7.1164,171.1854",
+  "Melekeok": "7.4874,134.6245",
+  "Ngerulmud": "7.5000,134.6333",
+  "Nukualofa": "-21.1394,-175.2042",
+  "Palikir": "6.9177,158.1851",
+  "Port Moresby": "-9.4780,147.1506",
+  "Port Vila": "-17.7332,168.3168",
+  "Suva": "-18.1416,178.4419",
+  "Tarawa": "1.3382,173.0176",
+  "Wellington": "-41.2865,174.7762",
+  "Yaren": "-0.5473,166.9209"
+};
+
+window.obtenerClima = async function(ciudad) {
+  const ahora = Date.now();
+  if (cacheClima[ciudad] && (ahora - cacheClima[ciudad].timestamp) < TIEMPO_CACHE) {
+    return cacheClima[ciudad].datos;
+  }
+
+  try {
+    // Usar coordenadas si están disponibles, si no, el nombre
+    const query = coordenadasCapitales[ciudad] || ciudad;
+    const respuesta = await fetch(`https://wttr.in/${encodeURIComponent(query)}?format=j1`);
+    if (!respuesta.ok) throw new Error("Error al obtener clima");
+
+    const data = await respuesta.json();
+    const condicionActual = data.current_condition[0];
+    const temp = condicionActual.temp_C + "°C";
+    const codigo = condicionActual.weatherCode;
+    const emoji = obtenerEmojiClima(codigo);
+    const desc = condicionActual.weatherDesc[0].value;
+
+    const datosClima = { temp, emoji, desc };
+    cacheClima[ciudad] = { datos: datosClima, timestamp: ahora };
+    return datosClima;
+  } catch (error) {
+    console.warn("No se pudo obtener clima para", ciudad, error);
+    return { temp: "", emoji: "", desc: "" };
+  }
+};
